@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Mi Progreso"/>
+<meta name="theme-color" content="#070c17"/>
+<title>Mi Progreso</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#070c17;--card:rgba(255,255,255,0.04);--brd:rgba(255,255,255,0.08);
+  --green:#6ee7b7;--teal:#2dd4bf;--blue:#93c5fd;--amber:#fcd34d;
+  --pink:#f472b6;--purple:#a78bfa;--red:#f87171;--orange:#fb923c;
+  --muted:#6b7280;--text:#f1f5f9;--sub:#94a3b8;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
+#app{height:100vh;display:flex;flex-direction:column;}
+#scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px calc(130px + env(safe-area-inset-bottom,0px)) 16px;}
+.pg{display:none;}.pg.on{display:block;}
+h2{font-size:22px;font-weight:800;color:var(--green);letter-spacing:-.5px;margin-bottom:4px;}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0d1424;border-top:1px solid var(--brd);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:100;}
+nav button{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px;}
+.ni{font-size:20px;line-height:1;}.nl{font-size:9px;font-weight:700;color:var(--muted);}
+nav button.on .nl{color:var(--green);}
+.nd{height:2px;width:16px;border-radius:2px;background:var(--green);visibility:hidden;}
+nav button.on .nd{visibility:visible;}
+#save-bar{position:fixed;bottom:calc(56px + env(safe-area-inset-bottom,0px));left:0;right:0;padding:10px 16px;background:linear-gradient(to top,#070c17 70%,transparent);z-index:99;display:none;}
+#save-bar button{width:100%;padding:15px;background:linear-gradient(135deg,var(--green),var(--teal));border:none;border-radius:14px;color:#052e16;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
+.fld{margin-bottom:13px;}
+.lbl{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.8px;display:block;margin-bottom:6px;}
+.inp{width:100%;background:rgba(255,255,255,0.07);border:1px solid var(--brd);border-radius:12px;padding:13px 15px;color:var(--text);font-size:16px;font-family:inherit;-webkit-appearance:none;outline:none;}
+.inp:focus{border-color:rgba(110,231,183,0.5);}
+.inp::placeholder{color:#374151;}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+.city-hint{font-size:11px;color:var(--muted);margin-top:5px;padding-left:2px;}
+.ck{display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:14px;padding:13px 15px;border:1.5px solid var(--brd);background:rgba(255,255,255,0.03);transition:all .15s;user-select:none;margin-bottom:9px;}
+.cb{width:25px;height:25px;border-radius:7px;flex-shrink:0;border:2px solid #374151;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:transparent;transition:all .15s;}
+.ct{font-size:14px;font-weight:600;}.cs{font-size:11px;color:var(--muted);margin-top:1px;}
+.btn-s{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:linear-gradient(135deg,var(--green),var(--teal));border:none;border-radius:30px;color:#052e16;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+.hero{background:var(--card);border:1px solid rgba(110,231,183,.22);border-radius:16px;padding:20px;margin-bottom:12px;text-align:center;}
+.hv{font-size:10px;color:var(--muted);letter-spacing:1.2px;font-weight:700;}
+.hval{font-size:52px;font-weight:800;line-height:1.05;margin-top:4px;background:linear-gradient(135deg,var(--green),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hsub{font-size:13px;color:var(--sub);margin-top:5px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;}
+.sc{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:13px;}
+.sl{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;letter-spacing:.4px;}
+.sv{font-size:20px;font-weight:800;}.ss{font-size:10px;color:#4b5563;margin-top:2px;}
+.bc-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:9px;}
+.bc-title{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:12px;}
+.bc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.bc-item{text-align:center;}.bc-lbl{font-size:10px;color:var(--muted);margin-bottom:3px;}
+.bc-val{font-size:18px;font-weight:800;}.bc-sub{font-size:10px;color:#4b5563;margin-top:1px;}
+.bf-bar-wrap{margin-top:12px;}
+.bf-bar{height:14px;border-radius:8px;overflow:hidden;display:flex;margin-bottom:4px;}
+.bf-fat{background:var(--orange);}.bf-lean{background:var(--teal);flex:1;}
+.bf-bar-lbls{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);}
+.imc-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:16px;margin-bottom:9px;}
+.imc-row{display:flex;align-items:flex-end;justify-content:space-around;margin-bottom:12px;}
+.imc-col{text-align:center;}.imc-col-lbl{font-size:10px;color:var(--muted);margin-bottom:3px;}
+.imc-col-val{font-size:22px;font-weight:800;}
+.imc-scale{height:10px;border-radius:10px;background:linear-gradient(90deg,#60a5fa 0%,#6ee7b7 25%,#fcd34d 60%,#f87171 100%);position:relative;margin-bottom:5px;}
+.imc-needle{position:absolute;top:-3px;width:4px;height:16px;background:#fff;border-radius:2px;transform:translateX(-50%);}
+.imc-scale-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:6px;}
+.cc{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:14px 10px;margin-bottom:14px;}
+.ct2{font-size:12px;font-weight:700;padding-left:4px;margin-bottom:10px;}
+.ph{text-align:center;padding:24px 0;font-size:12px;color:var(--muted);}
+.er{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--brd);border-radius:11px;padding:10px 13px;margin-bottom:8px;}
+.tw{background:var(--card);border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+table{width:100%;border-collapse:collapse;font-size:10px;}
+th{padding:8px 5px;text-align:left;color:var(--green);font-size:9px;font-weight:700;background:rgba(110,231,183,.08);}
+td{padding:6px 5px;border-bottom:1px solid rgba(255,255,255,.04);}
+tr:nth-child(even) td{background:rgba(255,255,255,.015);}
+.export-row{display:flex;gap:10px;margin-bottom:4px;}
+.btn-exp{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+#toast{position:fixed;top:max(14px,env(safe-area-inset-top,14px));left:50%;transform:translateX(-50%);background:#064e3b;color:var(--green);border-radius:30px;padding:9px 22px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 28px rgba(0,0,0,.8);white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;}
+#toast.show{opacity:1;}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="scr">
+
+<!-- REGISTRAR -->
+<div class="pg on" id="pg-reg">
+  <h2>Registrar día</h2>
+  <p id="last-p" style="font-size:12px;color:var(--muted);margin-bottom:18px;margin-top:2px"></p>
+  <div class="fld"><span class="lbl">FECHA (DD/MM)</span><input class="inp" id="f-date" placeholder="25/05" maxlength="5"/></div>
+  <div class="fld">
+    <span class="lbl">CIUDAD</span>
+    <input class="inp" id="f-city" placeholder="Las Vegas"/>
+    <p class="city-hint" id="city-hint"></p>
+  </div>
+  <div class="fld"><span class="lbl">PESO (kg) — opcional</span><input class="inp" id="f-peso" type="number" step="0.1" placeholder="88.0"/></div>
+  <div class="fld"><span class="lbl">BODY FAT (%) — opcional</span><input class="inp" id="f-bf" type="number" step="0.1" placeholder="26.5"/></div>
+  <div class="fld"><span class="lbl">KM CAMINADOS — opcional</span><input class="inp" id="f-km" type="number" step="0.1" placeholder="5.0"/></div>
+  <div class="fld"><span class="lbl">KM EN BICICLETA — opcional</span><input class="inp" id="f-bike" type="number" step="0.1" placeholder="10.0"/></div>
+  <span class="lbl" style="margin-bottom:9px;display:block">¿QUÉ MÁS PASÓ HOY?</span>
+  <div class="ck" id="ck-vuelo" onclick="tog('vuelo')" data-c="#93c5fd"><div class="cb" id="cb-vuelo"></div><div><div class="ct" id="cm-vuelo">✈️ Viajé en avión</div><div class="cs">Marcar si hubo vuelo este día</div></div></div>
+  <div class="ck" id="ck-iny" onclick="tog('iny')" data-c="#f472b6"><div class="cb" id="cb-iny"></div><div><div class="ct" id="cm-iny">💉 Me apliqué inyección</div><div class="cs">Registrar dosis del tratamiento</div></div></div>
+  <div class="ck" id="ck-gym" onclick="tog('gym')" data-c="#fcd34d"><div class="cb" id="cb-gym"></div><div><div class="ct" id="cm-gym">🏋️ Fui al gimnasio</div><div class="cs">Sesión de entrenamiento</div></div></div>
+  <div class="fld" style="margin-top:4px"><span class="lbl">COMENTARIO — opcional</span><input class="inp" id="f-nota" placeholder="ej: comí afuera..."/></div>
+</div>
+
+<!-- RESUMEN -->
+<div class="pg" id="pg-dash">
+  <div class="rh"><h2 style="margin-bottom:0">Resumen</h2><button class="btn-s" onclick="genPDF()">📤 PDF</button></div>
+  <div class="hero"><div class="hv">BAJASTE EN TOTAL</div><div class="hval" id="d-baj">—</div><div class="hsub" id="d-rng"></div></div>
+  <div class="g2">
+    <div class="sc"><div class="sl">MÍNIMO HISTÓRICO</div><div class="sv" style="color:var(--amber)" id="d-min">—</div><div class="ss" id="d-mind"></div></div>
+    <div class="sc"><div class="sl">BAJADA MÁXIMA</div><div class="sv" style="color:var(--teal)" id="d-bmx">—</div><div class="ss" id="d-bmxs"></div></div>
+  </div>
+  <div class="bc-card">
+    <div class="bc-title">COMPOSICIÓN CORPORAL — ACTUAL</div>
+    <div class="bc-grid">
+      <div class="bc-item"><div class="bc-lbl">Body fat %</div><div class="bc-val" style="color:var(--orange)" id="bc-bf">—</div><div class="bc-sub" id="bc-bfsub"></div></div>
+      <div class="bc-item"><div class="bc-lbl">Masa grasa</div><div class="bc-val" style="color:var(--orange)" id="bc-fg">—</div><div class="bc-sub">kg grasa</div></div>
+      <div class="bc-item"><div class="bc-lbl">Masa magra</div><div class="bc-val" style="color:var(--teal)" id="bc-lm">—</div><div class="bc-sub">kg músculo+hueso</div></div>
+      <div class="bc-item"><div class="bc-lbl">Agua corporal</div><div class="bc-val" style="color:var(--blue)" id="bc-bw">—</div><div class="bc-sub">litros (estimado)</div></div>
+    </div>
+    <div class="bf-bar-wrap"><div class="bf-bar"><div class="bf-fat" id="bc-fatbar" style="width:30%"></div><div class="bf-lean"></div></div><div class="bf-bar-lbls"><span id="bc-fat-lbl">Grasa 30%</span><span id="bc-lean-lbl">Magra 70%</span></div></div>
+  </div>
+  <div class="bc-card">
+    <div class="bc-title">EVOLUCIÓN BODY FAT</div>
+    <div style="display:flex;align-items:center;justify-content:space-around;margin-bottom:10px;">
+      <div style="text-align:center"><div class="bc-lbl">Inicial</div><div class="bc-val" style="color:var(--sub)" id="bf-ini">—</div></div>
+      <div style="font-size:20px;color:var(--brd)">→</div>
+      <div style="text-align:center"><div class="bc-lbl">Actual</div><div class="bc-val" style="color:var(--orange)" id="bf-act">—</div></div>
+      <div style="font-size:20px;color:var(--brd)">↓</div>
+      <div style="text-align:center"><div class="bc-lbl">Bajó</div><div class="bc-val" style="color:var(--green)" id="bf-dif">—</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-around;">
+      <div style="text-align:center"><div class="bc-lbl">Grasa inicial</div><div style="font-size:15px;font-weight:700;color:var(--sub)" id="bf-fgi">—</div></div>
+      <div style="font-size:20px;color:var(--brd)">→</div>
+      <div style="text-align:center"><div class="bc-lbl">Grasa actual</div><div style="font-size:15px;font-weight:700;color:var(--orange)" id="bf-fga">—</div></div>
+      <div style="font-size:20px;color:var(--brd)">↓</div>
+      <div style="text-align:center"><div class="bc-lbl">Grasa perdida</div><div style="font-size:15px;font-weight:700;color:var(--green)" id="bf-fgd">—</div></div>
+    </div>
+    <div style="margin-top:12px;font-size:10px;color:var(--muted);border-top:1px solid var(--brd);padding-top:10px;">Referencia hombres: Atlético &lt;14% · Fitness 14–17% · Normal 18–24% · Alto ≥25%</div>
+  </div>
+  <div class="imc-card">
+    <div class="sl" style="margin-bottom:10px">IMC / BMI</div>
+    <div class="imc-row">
+      <div class="imc-col"><div class="imc-col-lbl">Inicial</div><div class="imc-col-val" style="color:var(--sub)" id="d-imci">—</div></div>
+      <div style="font-size:18px;color:var(--brd);padding-bottom:4px">→</div>
+      <div class="imc-col"><div class="imc-col-lbl">Actual</div><div class="imc-col-val" id="d-imca">—</div></div>
+      <div style="font-size:18px;color:var(--brd);padding-bottom:4px">↓</div>
+      <div class="imc-col"><div class="imc-col-lbl">Bajó</div><div class="imc-col-val" style="color:var(--teal)" id="d-imcd">—</div></div>
+    </div>
+    <div class="imc-scale"><div class="imc-needle" id="d-needle" style="left:50%"></div></div>
+    <div class="imc-scale-lbl"><span>Bajo</span><span>Normal</span><span>Sobrepeso</span><span>Obesidad</span></div>
+    <div style="text-align:center;font-size:12px;font-weight:700" id="d-imccat"></div>
+  </div>
+  <div class="g2">
+    <div class="sc"><div class="sl">KM CAMINADOS</div><div class="sv" style="color:var(--blue)" id="d-km">—</div><div class="ss" id="d-kms"></div></div>
+    <div class="sc"><div class="sl">KM EN BICI</div><div class="sv" style="color:var(--purple)" id="d-bk">—</div><div class="ss" id="d-bks"></div></div>
+  </div>
+  <div class="g2">
+    <div class="sc"><div class="sl">INYECCIONES</div><div class="sv" style="color:var(--pink)" id="d-iny">—</div><div class="ss">dosis aplicadas</div></div>
+    <div class="sc"><div class="sl">VUELOS</div><div class="sv" style="color:var(--blue)" id="d-vuel">—</div><div class="ss">vuelos realizados</div></div>
+  </div>
+</div>
+
+<!-- GRAFICAS -->
+<div class="pg" id="pg-graf">
+  <h2 style="margin-bottom:16px">Gráficas</h2>
+  <div class="cc"><p class="ct2" style="color:var(--green)">⚖️ Peso (kg)</p><canvas id="c-peso"></canvas></div>
+  <div class="cc"><p class="ct2" style="color:var(--orange)">🔥 Body fat (%)</p><div id="ph-bf" class="ph">Ingresá body fat % para ver esta gráfica</div><canvas id="c-bf" style="display:none"></canvas><p style="font-size:10px;color:var(--muted);margin-top:6px;padding-left:4px">Atlético &lt;14 · Fitness 14–17 · Normal 18–24 · Alto ≥25</p></div>
+  <div class="cc"><p class="ct2" style="color:var(--teal)">💪 Masa grasa vs magra (kg)</p><div id="ph-comp" class="ph">Ingresá body fat % para ver esta gráfica</div><canvas id="c-comp" style="display:none"></canvas><div style="display:flex;gap:14px;padding-left:4px;margin-top:6px;font-size:10px;color:var(--muted)"><span><span style="width:10px;height:10px;border-radius:2px;background:var(--orange);display:inline-block;margin-right:4px"></span>Grasa</span><span><span style="width:10px;height:10px;border-radius:2px;background:var(--teal);display:inline-block;margin-right:4px"></span>Magra</span></div></div>
+  <div class="cc"><p class="ct2" style="color:var(--blue)">🚶 Km caminados</p><canvas id="c-km"></canvas><p style="font-size:10px;color:var(--muted);margin-top:6px;padding-left:4px">🟣 1–4 · 🔵 4–7 · 🩵 7+ km</p></div>
+  <div class="cc"><p class="ct2" style="color:var(--purple)">🚴 Km en bicicleta</p><div id="ph-bike" class="ph">Ingresá km en bici para ver esta gráfica</div><canvas id="c-bike" style="display:none"></canvas></div>
+  <div class="cc"><p class="ct2" style="color:var(--teal)">📊 IMC / BMI</p><div id="ph-imc" class="ph">Se calcula automáticamente con peso + altura</div><canvas id="c-imc" style="display:none"></canvas></div>
+</div>
+
+<!-- EVENTOS -->
+<div class="pg" id="pg-events">
+  <h2 style="margin-bottom:16px">Eventos</h2>
+  <div class="cc"><p class="ct2">Peso con eventos marcados</p><p style="font-size:11px;color:var(--muted);margin-bottom:12px;padding-left:4px">💉 Inyección · ✈️ Vuelo · ⭐ Mínimo histórico</p><canvas id="c-ev"></canvas></div>
+  <div id="ev-list"></div>
+</div>
+
+<!-- SALUD -->
+<div class="pg" id="pg-salud">
+  <h2 style="margin-bottom:4px">Salud</h2>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:16px">Datos de Apple Watch y balanza Wyze</p>
+
+  <div class="g2">
+    <div class="sc"><div class="sl">PASOS PROMEDIO</div><div class="sv" style="color:var(--blue)" id="h-stepsavg">—</div><div class="ss" id="h-stepsdays"></div></div>
+    <div class="sc"><div class="sl">FC REPOSO PROMEDIO</div><div class="sv" style="color:var(--pink)" id="h-rhravg">—</div><div class="ss">latidos/min</div></div>
+  </div>
+
+  <div class="bc-card">
+    <div class="bc-title">COMPOSICIÓN CORPORAL — BALANZA (ÚLTIMA MEDICIÓN)</div>
+    <div class="bc-grid">
+      <div class="bc-item"><div class="bc-lbl">Grasa visceral</div><div class="bc-val" style="color:var(--orange)" id="h-visceral">—</div><div class="bc-sub">nivel (1-59)</div></div>
+      <div class="bc-item"><div class="bc-lbl">Masa muscular</div><div class="bc-val" style="color:var(--teal)" id="h-muscle">—</div><div class="bc-sub">% del peso</div></div>
+      <div class="bc-item"><div class="bc-lbl">Agua corporal</div><div class="bc-val" style="color:var(--blue)" id="h-water">—</div><div class="bc-sub">% medido (real)</div></div>
+      <div class="bc-item"><div class="bc-lbl">Masa ósea</div><div class="bc-val" style="color:var(--amber)" id="h-bone">—</div><div class="bc-sub">kg</div></div>
+      <div class="bc-item"><div class="bc-lbl">BMR</div><div class="bc-val" style="color:var(--green)" id="h-bmr">—</div><div class="bc-sub">kcal/día en reposo</div></div>
+      <div class="bc-item"><div class="bc-lbl">Edad metabólica</div><div class="bc-val" style="color:var(--purple)" id="h-metage">—</div><div class="bc-sub">vs edad real</div></div>
+    </div>
+    <div style="margin-top:12px;font-size:10px;color:var(--muted);border-top:1px solid var(--brd);padding-top:10px;">Grasa visceral: saludable 1–9 · alto 10–14 · muy alto ≥15. Estos datos vienen de la balanza Wyze, más precisos que estimaciones.</div>
+  </div>
+
+  <div class="cc">
+    <p class="ct2" style="color:var(--blue)">🚶 Pasos diarios (Apple Watch / iPhone)</p>
+    <canvas id="c-steps"></canvas>
+  </div>
+
+  <div class="cc">
+    <p class="ct2" style="color:var(--pink)">❤️ Frecuencia cardíaca en reposo</p>
+    <canvas id="c-rhr"></canvas>
+    <p style="font-size:10px;color:var(--muted);margin-top:6px;padding-left:4px">Tiende a bajar con mejor estado físico y pérdida de peso</p>
+  </div>
+
+  <div class="cc">
+    <p class="ct2" style="color:var(--orange)">🔥 Grasa visceral (balanza)</p>
+    <canvas id="c-visc"></canvas>
+  </div>
+
+  <div class="cc">
+    <p class="ct2" style="color:var(--teal)">💪 Masa muscular % (balanza)</p>
+    <canvas id="c-muscle"></canvas>
+  </div>
+
+  <div class="cc" id="wrap-sleep">
+    <p class="ct2" style="color:var(--purple)">😴 Sueño (horas)</p>
+    <div id="ph-sleep" class="ph">Datos parciales — pocas noches con Apple Watch puesto</div>
+    <canvas id="c-sleep" style="display:none"></canvas>
+  </div>
+</div>
+
+<!-- TABLA -->
+<div class="pg" id="pg-tabla">
+  <h2 style="margin-bottom:16px">Tabla completa</h2>
+  <div class="tw">
+    <table><thead><tr><th>Fecha</th><th>Ciudad</th><th>Peso</th><th>BF%</th><th>IMC</th><th>🚶</th><th>🚴</th><th></th><th>Nota</th></tr></thead>
+    <tbody id="t-body"></tbody></table>
+  </div>
+  <div class="export-row">
+    <button class="btn-exp" onclick="exportXLSX()" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">📊 Excel</button>
+    <button class="btn-exp" onclick="exportCSV()" style="background:linear-gradient(135deg,var(--blue),#6366f1);color:#fff;">📄 CSV</button>
+  </div>
+</div>
+
+</div>
+<div id="save-bar"><button onclick="guardar()">Guardar registro</button></div>
+<nav>
+  <button class="on" onclick="ir('reg',this)"><span class="ni">📝</span><span class="nl">Registrar</span><div class="nd"></div></button>
+  <button onclick="ir('dash',this)"><span class="ni">📊</span><span class="nl">Resumen</span><div class="nd"></div></button>
+  <button onclick="ir('graf',this)"><span class="ni">📈</span><span class="nl">Gráficas</span><div class="nd"></div></button>
+  <button onclick="ir('events',this)"><span class="ni">🗓</span><span class="nl">Eventos</span><div class="nd"></div></button>
+  <button onclick="ir('salud',this)"><span class="ni">❤️</span><span class="nl">Salud</span><div class="nd"></div></button>
+  <button onclick="ir('tabla',this)"><span class="ni">📋</span><span class="nl">Tabla</span><div class="nd"></div></button>
+</nav>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── BASE DATA (hardcoded, never lost) ─────────────────────────────────────────
+var BASE = [
+  {date:"04/03",city:"",peso:100.7,bf:null,imc:null,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"27/03",city:"",peso:100.0,bf:null,imc:null,km:null,bike:null,vuelo:false,iny:true,gym:false,nota:"1a inyeccion"},
+  {date:"28/03",city:"",peso:99.2,bf:null,imc:null,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"29/03",city:"",peso:99.0,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"30/03",city:"",peso:98.8,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"31/03",city:"",peso:97.9,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"01/04",city:"",peso:97.8,bf:null,imc:null,km:4.7,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"02/04",city:"",peso:97.1,bf:null,imc:null,km:7.5,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"03/04",city:"",peso:97.4,bf:null,imc:null,km:null,bike:null,vuelo:false,iny:true,gym:false,nota:"2a inyeccion"},
+  {date:"04/04",city:"",peso:97.4,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"05/04",city:"",peso:97.7,bf:null,imc:null,km:7.5,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"06/04",city:"",peso:97.9,bf:null,imc:null,km:0.0,bike:null,vuelo:false,iny:false,gym:false,nota:"No camine"},
+  {date:"07/04",city:"",peso:96.9,bf:null,imc:null,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"08/04",city:"",peso:96.7,bf:null,imc:null,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"09/04",city:"",peso:96.3,bf:null,imc:null,km:10.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"10/04",city:"",peso:96.4,bf:null,imc:29.8,km:7.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"11/04",city:"",peso:96.0,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"12/04",city:"",peso:95.8,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"13/04",city:"PTY",peso:95.6,bf:null,imc:null,km:5.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Viaje a PTY"},
+  {date:"14/04",city:"PTY",peso:null,bf:null,imc:null,km:4.0,bike:null,vuelo:false,iny:false,gym:false,nota:"PTY"},
+  {date:"15/04",city:"PTY",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:"PTY"},
+  {date:"16/04",city:"PTY",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:"PTY"},
+  {date:"17/04",city:"PTY",peso:null,bf:null,imc:null,km:5.5,bike:null,vuelo:false,iny:false,gym:false,nota:"PTY"},
+  {date:"18/04",city:"PTY",peso:null,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"19/04",city:"",peso:94.1,bf:null,imc:null,km:0.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"20/04",city:"Chile",peso:94.8,bf:null,imc:null,km:0.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Viaje a Chile"},
+  {date:"21/04",city:"Chile",peso:null,bf:null,imc:null,km:2.0,bike:null,vuelo:false,iny:false,gym:true,nota:"Gimnasio 30 min"},
+  {date:"22/04",city:"Chile",peso:null,bf:null,imc:null,km:4.0,bike:null,vuelo:false,iny:false,gym:false,nota:"Chile"},
+  {date:"23/04",city:"Chile",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:"Chile"},
+  {date:"24/04",city:"Chile",peso:null,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:"Chile"},
+  {date:"25/04",city:"",peso:93.0,bf:null,imc:28.7,km:4.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"26/04",city:"",peso:93.3,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"27/04",city:"Panama",peso:93.2,bf:null,imc:null,km:3.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Viaje a Panama"},
+  {date:"28/04",city:"Panama",peso:null,bf:null,imc:null,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"29/04",city:"",peso:92.0,bf:null,imc:28.4,km:4.0,bike:null,vuelo:false,iny:false,gym:false,nota:"Cambio de balanza"},
+  {date:"30/04",city:"",peso:null,bf:null,imc:null,km:null,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"01/05",city:"Argentina",peso:90.6,bf:null,imc:28.0,km:7.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"02/05",city:"Argentina",peso:91.4,bf:null,imc:28.2,km:7.0,bike:2.5,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"03/05",city:"Argentina",peso:91.1,bf:null,imc:28.1,km:4.7,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"04/05",city:"Argentina",peso:90.8,bf:27.0,imc:28.0,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"05/05",city:"Argentina",peso:90.2,bf:26.5,imc:27.8,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"06/05",city:"Argentina",peso:89.9,bf:26.6,imc:27.7,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"07/05",city:"Argentina",peso:89.9,bf:26.5,imc:27.7,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"08/05",city:"Argentina",peso:89.4,bf:26.5,imc:27.6,km:null,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"09/05",city:"Argentina",peso:88.6,bf:26.7,imc:27.3,km:3.0,bike:13.5,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"10/05",city:"Argentina",peso:88.6,bf:26.1,imc:27.3,km:4.7,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"11/05",city:"Argentina",peso:89.5,bf:26.4,imc:27.6,km:3.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"12/05",city:"Argentina",peso:88.1,bf:24.4,imc:27.2,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"13/05",city:"Argentina",peso:88.9,bf:24.7,imc:27.4,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"14/05",city:"Argentina",peso:88.8,bf:25.1,imc:27.4,km:4.9,bike:null,vuelo:true,iny:true,gym:false,nota:"Inyeccion · Vuelo"},
+  {date:"15/05",city:"Panama",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"16/05",city:"Las vegas",peso:null,bf:null,imc:null,km:9.7,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"17/05",city:"Las vegas",peso:null,bf:null,imc:null,km:12.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"18/05",city:"Las vegas",peso:null,bf:null,imc:null,km:12.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"19/05",city:"Las vegas",peso:null,bf:null,imc:null,km:9.2,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"20/05",city:"Las vegas",peso:null,bf:null,imc:null,km:10.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"21/05",city:"Las Vegas",peso:null,bf:null,imc:null,km:22.0,bike:null,vuelo:false,iny:false,gym:false,nota:"En las vegas de paseo con Lau"},
+  {date:"22/05",city:"Las Vegas",peso:null,bf:null,imc:null,km:11.5,bike:null,vuelo:false,iny:false,gym:false,nota:"Cambio de hotel en las vegas"},
+  {date:"23/05",city:"Las Vegas",peso:null,bf:null,imc:null,km:21.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"24/05",city:"Las Vegas",peso:null,bf:null,imc:null,km:12.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"25/05",city:"Las vegas",peso:null,bf:null,imc:null,km:7.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"26/05",city:"Panamá",peso:null,bf:null,imc:null,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"27/05",city:"Panamá",peso:null,bf:null,imc:null,km:9.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"28/05",city:"Panamá",peso:null,bf:null,imc:null,km:12.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"29/05",city:"Argentina",peso:86.4,bf:23.9,imc:26.7,km:7.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"30/05",city:"Argentina",peso:86.1,bf:23.6,imc:26.6,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"31/05",city:"Argentina",peso:85.3,bf:24.3,imc:26.3,km:null,bike:25.5,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"01/06",city:"Argentina",peso:85.4,bf:24.7,imc:26.4,km:7.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"02/06",city:"Argentina",peso:85.6,bf:25.2,imc:26.4,km:8.5,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"03/06",city:"Argentina",peso:84.9,bf:24.9,imc:26.2,km:4.8,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"04/06",city:"Argentina",peso:84.4,bf:24.6,imc:26.0,km:6.5,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"05/06",city:"Argentina",peso:84.2,bf:25.4,imc:26.0,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"06/06",city:"Argentina",peso:84.1,bf:24.8,imc:26.0,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"07/06",city:"Argentina",peso:85.0,bf:25.0,imc:26.2,km:null,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"08/06",city:"Panamá",peso:null,bf:null,imc:null,km:8.0,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"},
+  {date:"09/06",city:"Austin",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:true,nota:"Gym"},
+  {date:"10/06",city:"Austin",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:true,nota:"Gym"},
+  {date:"11/06",city:"Austin",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:true,iny:false,gym:true,nota:"Gym · Vuelo"},
+  {date:"12/06",city:"Panamá",peso:null,bf:null,imc:null,km:5.0,bike:null,vuelo:false,iny:false,gym:true,nota:"Gym"},
+  {date:"13/06",city:"Panamá",peso:null,bf:null,imc:null,km:8.0,bike:null,vuelo:true,iny:false,gym:true,nota:"Gym · Vuelo"},
+  {date:"14/06",city:"Argentina",peso:84.9,bf:24.7,imc:26.2,km:7.0,bike:null,vuelo:false,iny:true,gym:false,nota:"Inyeccion"},
+  {date:"15/06",city:"Argentina",peso:85.1,bf:24.5,imc:26.3,km:12.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"16/06",city:"Argentina",peso:84.5,bf:24.4,imc:26.1,km:5.0,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"17/06",city:"Argentina",peso:85.0,bf:24.6,imc:26.2,km:null,bike:null,vuelo:false,iny:false,gym:false,nota:""},
+  {date:"19/06",city:"Argentina",peso:84.3,bf:23.1,imc:26.0,km:null,bike:null,vuelo:true,iny:false,gym:false,nota:"Vuelo"}
+];
+
+// ── HEALTH DATA (Apple Health + Wyze Scale) ──────────────────────────────────
+var HEALTH = [
+  {date:"04/03",steps:5716,rhr:60,sleepH:6.3,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"05/03",steps:6039,rhr:59,sleepH:5.4,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"06/03",steps:5500,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"07/03",steps:9648,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"08/03",steps:5155,rhr:66,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"09/03",steps:4163,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"10/03",steps:4672,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"11/03",steps:4159,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"12/03",steps:5303,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"13/03",steps:11958,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"14/03",steps:13210,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"15/03",steps:13162,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"16/03",steps:6003,rhr:69,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"17/03",steps:2775,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"18/03",steps:7565,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"19/03",steps:6751,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"20/03",steps:4127,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"21/03",steps:4393,rhr:70,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"22/03",steps:5326,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"23/03",steps:4600,rhr:71,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"24/03",steps:6811,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"25/03",steps:5671,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"26/03",steps:5209,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"27/03",steps:10112,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"28/03",steps:12451,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"29/03",steps:11537,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"30/03",steps:11628,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"31/03",steps:13697,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"01/04",steps:9648,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"02/04",steps:15808,rhr:69,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"03/04",steps:3358,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"04/04",steps:7014,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"05/04",steps:13973,rhr:56,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"06/04",steps:3493,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"07/04",steps:10882,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"08/04",steps:12788,rhr:66,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"09/04",steps:17842,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"10/04",steps:16007,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"11/04",steps:7977,rhr:66,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"12/04",steps:12928,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"13/04",steps:13169,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"14/04",steps:11174,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"15/04",steps:13693,rhr:61,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"16/04",steps:9445,rhr:58,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"17/04",steps:12449,rhr:66,sleepH:1.2,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"18/04",steps:10725,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"19/04",steps:5554,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"20/04",steps:10130,rhr:57,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"21/04",steps:8312,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"22/04",steps:11483,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"23/04",steps:13935,rhr:67,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"24/04",steps:8111,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"25/04",steps:12040,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"26/04",steps:11076,rhr:66,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"27/04",steps:6405,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"28/04",steps:13022,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"29/04",steps:6699,rhr:62,sleepH:null,visceral:10.0,muscleM:67.1,boneM:4.4,bodyWater:52.7,bmr:1799.0,metAge:50.0,skeletalM:41.1},
+  {date:"30/04",steps:6373,rhr:65,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"01/05",steps:16737,rhr:61,sleepH:1.0,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"02/05",steps:12023,rhr:62,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"03/05",steps:9918,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"04/05",steps:10595,rhr:64,sleepH:null,visceral:9.0,muscleM:68.2,boneM:4.4,bodyWater:53.5,bmr:1802.0,metAge:50.0,skeletalM:41.7},
+  {date:"05/05",steps:5036,rhr:65,sleepH:null,visceral:9.0,muscleM:68.6,boneM:4.4,bodyWater:53.9,bmr:1802.0,metAge:49.0,skeletalM:42.0},
+  {date:"06/05",steps:11702,rhr:65,sleepH:null,visceral:9.0,muscleM:68.5,boneM:4.4,bodyWater:53.8,bmr:1795.0,metAge:49.0,skeletalM:42.0},
+  {date:"07/05",steps:13950,rhr:70,sleepH:null,visceral:9.0,muscleM:68.6,boneM:4.4,bodyWater:53.9,bmr:1797.0,metAge:49.0,skeletalM:42.0},
+  {date:"08/05",steps:10800,rhr:66,sleepH:null,visceral:9.0,muscleM:68.6,boneM:4.4,bodyWater:53.9,bmr:1789.0,metAge:49.0,skeletalM:42.0},
+  {date:"09/05",steps:2967,rhr:69,sleepH:null,visceral:9.0,muscleM:68.5,boneM:4.4,bodyWater:53.8,bmr:1774.0,metAge:49.0,skeletalM:41.9},
+  {date:"10/05",steps:11541,rhr:65,sleepH:null,visceral:9.0,muscleM:68.8,boneM:4.4,bodyWater:54.1,bmr:1782.0,metAge:49.0,skeletalM:42.2},
+  {date:"11/05",steps:4885,rhr:60,sleepH:null,visceral:9.0,muscleM:68.7,boneM:4.4,bodyWater:54.0,bmr:1793.0,metAge:49.0,skeletalM:42.1},
+  {date:"12/05",steps:1740,rhr:59,sleepH:null,visceral:8.0,muscleM:70.5,boneM:4.49,bodyWater:55.4,bmr:1808.0,metAge:49.0,skeletalM:43.2},
+  {date:"13/05",steps:5220,rhr:59,sleepH:null,visceral:8.0,muscleM:70.3,boneM:4.49,bodyWater:55.2,bmr:1815.0,metAge:49.0,skeletalM:43.0},
+  {date:"14/05",steps:6800,rhr:72,sleepH:null,visceral:8.0,muscleM:69.9,boneM:4.4,bodyWater:54.9,bmr:1804.0,metAge:49.0,skeletalM:42.8},
+  {date:"15/05",steps:11225,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"16/05",steps:16418,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"17/05",steps:13070,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"18/05",steps:12989,rhr:60,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"19/05",steps:16540,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"20/05",steps:14485,rhr:61,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"21/05",steps:30196,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"22/05",steps:14336,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"23/05",steps:17831,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"24/05",steps:24195,rhr:61,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"25/05",steps:9730,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"26/05",steps:8428,rhr:54,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"27/05",steps:12422,rhr:64,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"28/05",steps:15186,rhr:64,sleepH:2.0,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"29/05",steps:9367,rhr:58,sleepH:null,visceral:8.0,muscleM:70.8,boneM:4.4,bodyWater:55.7,bmr:1789.0,metAge:47.0,skeletalM:43.4},
+  {date:"30/05",steps:6737,rhr:59,sleepH:null,visceral:7.0,muscleM:71.3,boneM:4.4,bodyWater:56.0,bmr:1791.0,metAge:47.0,skeletalM:43.7},
+  {date:"31/05",steps:9276,rhr:66,sleepH:null,visceral:8.0,muscleM:70.6,boneM:4.31,bodyWater:55.4,bmr:1763.0,metAge:49.0,skeletalM:43.1},
+  {date:"01/06",steps:12701,rhr:62,sleepH:null,visceral:8.0,muscleM:70.3,boneM:4.31,bodyWater:55.2,bmr:1758.0,metAge:49.0,skeletalM:43.0},
+  {date:"02/06",steps:14363,rhr:63,sleepH:null,visceral:8.0,muscleM:69.9,boneM:4.31,bodyWater:54.9,bmr:1754.0,metAge:49.0,skeletalM:42.7},
+  {date:"03/06",steps:6096,rhr:66,sleepH:null,visceral:8.0,muscleM:70.1,boneM:4.31,bodyWater:55.1,bmr:1748.0,metAge:49.0,skeletalM:42.8},
+  {date:"04/06",steps:9264,rhr:71,sleepH:null,visceral:8.0,muscleM:70.3,boneM:4.31,bodyWater:55.2,bmr:1743.0,metAge:49.0,skeletalM:43.0},
+  {date:"05/06",steps:7390,rhr:65,sleepH:null,visceral:8.0,muscleM:69.6,boneM:4.22,bodyWater:54.7,bmr:1726.0,metAge:49.0,skeletalM:42.5},
+  {date:"06/06",steps:9926,rhr:67,sleepH:null,visceral:8.0,muscleM:70.0,boneM:4.22,bodyWater:55.1,bmr:1735.0,metAge:49.0,skeletalM:42.8},
+  {date:"07/06",steps:7994,rhr:64,sleepH:null,visceral:8.0,muscleM:69.9,boneM:4.31,bodyWater:55.0,bmr:1748.0,metAge:49.0,skeletalM:42.8},
+  {date:"08/06",steps:9277,rhr:58,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"09/06",steps:11949,rhr:58,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"10/06",steps:13610,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"11/06",steps:12455,rhr:63,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"12/06",steps:12902,rhr:59,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"13/06",steps:12136,rhr:64,sleepH:6.1,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null},
+  {date:"14/06",steps:15582,rhr:58,sleepH:null,visceral:8.0,muscleM:70.3,boneM:4.31,bodyWater:55.2,bmr:1750.0,metAge:49.0,skeletalM:42.9},
+  {date:"15/06",steps:17218,rhr:65,sleepH:null,visceral:8.0,muscleM:70.5,boneM:4.31,bodyWater:55.4,bmr:1758.0,metAge:49.0,skeletalM:43.1},
+  {date:"16/06",steps:12732,rhr:62,sleepH:null,visceral:8.0,muscleM:70.5,boneM:4.31,bodyWater:55.4,bmr:1750.0,metAge:49.0,skeletalM:43.1},
+  {date:"17/06",steps:4372,rhr:53,sleepH:null,visceral:8.0,muscleM:70.4,boneM:4.31,bodyWater:55.3,bmr:1754.0,metAge:49.0,skeletalM:43.0},
+  {date:"18/06",steps:3570,rhr:64,sleepH:null,visceral:6.0,muscleM:72.8,boneM:4.4,bodyWater:57.2,bmr:1793.0,metAge:47.0,skeletalM:44.6},
+  {date:"19/06",steps:821,rhr:null,sleepH:null,visceral:null,muscleM:null,boneM:null,bodyWater:null,bmr:null,metAge:null,skeletalM:null}
+];
+
+var SK="ht_v14", SK_ALT="ht_altura_v1";
+function loadExtra(){try{var r=localStorage.getItem(SK);return r?JSON.parse(r):[];}catch(e){return[];}}
+function saveExtra(a){try{localStorage.setItem(SK,JSON.stringify(a));}catch(e){}}
+function getAlt(){try{var v=localStorage.getItem(SK_ALT);return v?+v:null;}catch(e){return null;}}
+function setAlt(v){try{localStorage.setItem(SK_ALT,""+v);}catch(e){}}
+
+function buildD(){
+  var extra=loadExtra(), map={};
+  BASE.forEach(function(r){map[r.date]=Object.assign({},r);});
+  extra.forEach(function(r){
+    if(map[r.date]){
+      var e=map[r.date];
+      if(r.city)        e.city =r.city;
+      if(r.peso !=null) e.peso =r.peso;
+      if(r.bf   !=null) e.bf   =r.bf;
+      if(r.imc  !=null) e.imc  =r.imc;
+      if(r.km   !=null) e.km   =r.km;
+      if(r.bike !=null) e.bike =r.bike;
+      if(r.vuelo)       e.vuelo=true;
+      if(r.iny)         e.iny  =true;
+      if(r.gym)         e.gym  =true;
+      if(r.nota)        e.nota =e.nota?(e.nota+" · "+r.nota):r.nota;
+    } else {
+      map[r.date]=Object.assign({},r);
+    }
+  });
+  var arr=Object.values(map);
+  arr.sort(function(a,b){
+    var pa=a.date.split("/"),pb=b.date.split("/");
+    return +pa[1]!==+pb[1]?+pa[1]-+pb[1]:+pa[0]-+pb[0];
+  });
+  return arr;
+}
+var D=buildD();
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function lastCity(){
+  for(var i=D.length-1;i>=0;i--){if(D[i].city)return D[i].city;}
+  return "";
+}
+function bfCalc(p,b){if(!p||!b)return null;var fg=Math.round(p*b/100*10)/10,lm=Math.round((p-fg)*10)/10,bw=Math.round(lm*0.73*10)/10;return{fg:fg,lm:lm,bw:bw};}
+function bfCat(v){if(v==null)return{label:"—",color:"var(--muted)"};if(v<6)return{label:"Esencial",color:"var(--blue)"};if(v<14)return{label:"Atlético",color:"var(--teal)"};if(v<18)return{label:"Fitness",color:"var(--green)"};if(v<25)return{label:"Normal",color:"var(--amber)"};return{label:"Alto",color:"var(--red)"};}
+function calcIMC(p,a){if(!p||!a)return null;var h=a/100;return Math.round(p/(h*h)*10)/10;}
+function imcCat(v){if(v==null)return{label:"—",color:"var(--muted)"};if(v<18.5)return{label:"Bajo peso",color:"#60a5fa"};if(v<25)return{label:"Normal",color:"var(--green)"};if(v<30)return{label:"Sobrepeso",color:"var(--amber)"};return{label:"Obesidad",color:"var(--red)"};}
+function imcPct(v){return Math.min(100,Math.max(0,(v-15)/25*100));}
+function stats(){
+  var wp=D.filter(function(d){return d.peso!=null;}),pi=wp.length?wp[0].peso:0,pa=wp.length?wp[wp.length-1].peso:0;
+  var pm=wp.length?Math.min.apply(null,wp.map(function(d){return d.peso;})):0,pmDate="";
+  for(var i=0;i<D.length;i++){if(D[i].peso===pm){pmDate=D[i].date;break;}}
+  var kmT=0,bkT=0,dKm=0,dBk=0;
+  D.forEach(function(d){kmT+=(d.km||0);bkT+=(d.bike||0);if((d.km||0)>0)dKm++;if((d.bike||0)>0)dBk++;});
+  var wbf=D.filter(function(d){return d.bf!=null&&d.peso!=null;}),wimc=D.filter(function(d){return d.imc!=null;});
+  return{pi:pi,pa:pa,pm:pm,pmDate:pmDate,kmTotal:Math.round(kmT*10)/10,bikeTotal:Math.round(bkT*10)/10,diasKm:dKm,diasBike:dBk,
+    vuelos:D.filter(function(d){return d.vuelo;}).length,inyecciones:D.filter(function(d){return d.iny;}).length,
+    bajada:Math.round((pi-pa)*10)/10,bajadaMax:Math.round((pi-pm)*10)/10,
+    bfI:wbf.length?wbf[0].bf:null,bfA:wbf.length?wbf[wbf.length-1].bf:null,
+    pesoI:wbf.length?wbf[0].peso:null,pesoA:wbf.length?wbf[wbf.length-1].peso:null,
+    imcI:wimc.length?wimc[0].imc:null,imcA:wimc.length?wimc[wimc.length-1].imc:null};
+}
+
+// ── CHECKBOXES ────────────────────────────────────────────────────────────────
+var chks={vuelo:false,iny:false,gym:false};
+function tog(k){
+  chks[k]=!chks[k];
+  var card=document.getElementById("ck-"+k),box=document.getElementById("cb-"+k),main=document.getElementById("cm-"+k),col=card.getAttribute("data-c");
+  if(chks[k]){card.style.borderColor=col;card.style.background=col+"18";box.style.background=col;box.style.borderColor=col;box.style.color="#000";box.textContent="✓";main.style.color=col;}
+  else{card.style.borderColor="rgba(255,255,255,0.08)";card.style.background="rgba(255,255,255,0.03)";box.style.background="rgba(255,255,255,0.06)";box.style.borderColor="#374151";box.style.color="transparent";box.textContent="";main.style.color="var(--text)";}
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function ir(id,btn){
+  document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});
+  document.querySelectorAll("nav button").forEach(function(b){b.classList.remove("on");});
+  document.getElementById("pg-"+id).classList.add("on");btn.classList.add("on");
+  document.getElementById("scr").scrollTop=0;
+  document.getElementById("save-bar").style.display=(id==="reg")?"block":"none";
+  if(id==="dash")  renderDash();
+  if(id==="graf")  renderGraf();
+  if(id==="events")renderEvents();
+  if(id==="salud") renderSalud();
+  if(id==="tabla") renderTabla();
+}
+
+function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("show");},2400);}
+function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+function setCol(id,c){var e=document.getElementById(id);if(e)e.style.color=c;}
+
+function renderLastPeso(){
+  var wp=D.filter(function(d){return d.peso!=null;}),l=wp[wp.length-1];
+  var el=document.getElementById("last-p");
+  if(l){var x=l.bf!=null?" · BF: "+l.bf+"%":"";el.innerHTML='Último: <span style="color:var(--green);font-weight:700">'+l.peso+' kg'+x+'</span> · '+l.date+(l.city?" · "+l.city:"");}
+  else el.textContent="";
+  // Pre-fill city with last known city
+  var city=document.getElementById("f-city");
+  var hint=document.getElementById("city-hint");
+  var lc=lastCity();
+  if(city&&!city.value&&lc){city.value=lc;hint.textContent="Igual que ayer ("+lc+") — modificá si cambió";}
+}
+
+// ── GUARDAR ───────────────────────────────────────────────────────────────────
+function guardar(){
+  var date=document.getElementById("f-date").value.trim();
+  if(!/^\d{2}\/\d{2}$/.test(date)){toast("⚠️ Formato: DD/MM");return;}
+  var cityV=document.getElementById("f-city").value.trim();
+  var pesoV=document.getElementById("f-peso").value;
+  var bfV  =document.getElementById("f-bf").value;
+  var kmV  =document.getElementById("f-km").value;
+  var bikeV=document.getElementById("f-bike").value;
+  var notaV=document.getElementById("f-nota").value.trim();
+  var altEl=document.getElementById("f-alt");
+  if(altEl&&altEl.value&&+altEl.value>100){setAlt(+altEl.value);altEl.closest(".fld").style.display="none";}
+  var alt=getAlt(),imcFinal=null;
+  if(pesoV&&alt)imcFinal=calcIMC(+pesoV,alt);
+  var tags=[chks.iny&&"Inyeccion",chks.gym&&"Gym",chks.vuelo&&"Vuelo"].filter(Boolean);
+  var entry={date:date,city:cityV,peso:pesoV!==""?+pesoV:null,bf:bfV!==""?+bfV:null,imc:imcFinal,
+    km:kmV!==""?+kmV:null,bike:bikeV!==""?+bikeV:null,
+    vuelo:chks.vuelo,iny:chks.iny,gym:chks.gym,nota:[notaV].concat(tags).filter(Boolean).join(" · ")};
+  var extra=loadExtra(),idx=-1;
+  for(var i=0;i<extra.length;i++){if(extra[i].date===date){idx=i;break;}}
+  if(idx>=0){
+    var ex=extra[idx];
+    if(entry.city)        ex.city =entry.city;
+    if(entry.peso !=null) ex.peso =entry.peso;
+    if(entry.bf   !=null) ex.bf   =entry.bf;
+    if(entry.imc  !=null) ex.imc  =entry.imc;
+    if(entry.km   !=null) ex.km   =entry.km;
+    if(entry.bike !=null) ex.bike =entry.bike;
+    if(entry.vuelo) ex.vuelo=true; if(entry.iny) ex.iny=true; if(entry.gym) ex.gym=true;
+    if(entry.nota)  ex.nota=ex.nota?(ex.nota+" · "+entry.nota):entry.nota;
+    toast("✏️ Actualizado");
+  } else {extra.push(entry);toast("✅ ¡Guardado!");}
+  saveExtra(extra);D=buildD();
+  document.getElementById("f-peso").value="";document.getElementById("f-bf").value="";
+  document.getElementById("f-km").value="";document.getElementById("f-bike").value="";
+  document.getElementById("f-nota").value="";
+  Object.keys(chks).forEach(function(k){if(chks[k])tog(k);});
+  renderLastPeso();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDash(){
+  var s=stats(),wp=D.filter(function(d){return d.peso!=null;}),l=wp[wp.length-1];
+  set("d-baj",s.bajada+" kg");set("d-rng",s.pi+" kg → "+s.pa+" kg  ·  último "+(l?l.date:""));
+  set("d-min",s.pm+" kg");set("d-mind",s.pmDate);
+  set("d-bmx","↓ "+s.bajadaMax+" kg");set("d-bmxs","vs "+s.pi+" kg inicial");
+  set("d-km",s.kmTotal+" km");set("d-kms",s.diasKm+" días activos");
+  set("d-bk",s.bikeTotal+" km");set("d-bks",s.diasBike+" días en bici");
+  set("d-iny",s.inyecciones+" 💉");set("d-vuel",s.vuelos+" ✈️");
+  if(s.imcA!=null){var cat=imcCat(s.imcA),dif=Math.round((s.imcI-s.imcA)*10)/10;set("d-imci",s.imcI);set("d-imca",s.imcA);setCol("d-imca",cat.color);set("d-imcd",dif>0?"↓ "+dif:dif<0?"↑ "+Math.abs(dif):"=");set("d-imccat",cat.label);setCol("d-imccat",cat.color);document.getElementById("d-needle").style.left=imcPct(s.imcA)+"%";}
+  if(s.bfA!=null&&s.pesoA!=null){var bc=bfCalc(s.pesoA,s.bfA),cat2=bfCat(s.bfA),pct=Math.round(s.bfA);set("bc-bf",s.bfA+"%");setCol("bc-bf",cat2.color);set("bc-bfsub",cat2.label);set("bc-fg",bc.fg+" kg");set("bc-lm",bc.lm+" kg");set("bc-bw",bc.bw+" L");document.getElementById("bc-fatbar").style.width=pct+"%";set("bc-fat-lbl","Grasa "+pct+"%");set("bc-lean-lbl","Magra "+(100-pct)+"%");}
+  if(s.bfI!=null&&s.bfA!=null){var dBF=Math.round((s.bfI-s.bfA)*10)/10;set("bf-ini",s.bfI+"%");set("bf-act",s.bfA+"%");set("bf-dif",dBF>0?"↓ "+dBF+"%":"=");if(s.pesoI&&s.pesoA){var fgI=Math.round(s.pesoI*s.bfI/100*10)/10,fgA=Math.round(s.pesoA*s.bfA/100*10)/10,fgD=Math.round((fgI-fgA)*10)/10;set("bf-fgi",fgI+" kg");set("bf-fga",fgA+" kg");set("bf-fgd",fgD>0?"↓ "+fgD+" kg":"=");}}
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+var charts={};
+function baseOpts(yMin,yMax,showLegend,stepSize){
+  var yScale={grid:{color:"rgba(255,255,255,0.04)"},ticks:{color:"#6b7280",font:{size:9}}};
+  if(yMin!==undefined)yScale.min=yMin;if(yMax!==undefined)yScale.max=yMax;
+  if(stepSize!==undefined)yScale.ticks={color:"#6b7280",font:{size:9},stepSize:stepSize};
+  return{responsive:false,maintainAspectRatio:false,animation:false,animations:false,transitions:{},
+    plugins:{legend:{display:!!showLegend,labels:{color:"#94a3b8",font:{size:10},boxWidth:12}},tooltip:{backgroundColor:"#0f172a",titleColor:"#6ee7b7",bodyColor:"#94a3b8",borderColor:"#1e293b",borderWidth:1,cornerRadius:8,padding:10,animation:false}},
+    scales:{x:{grid:{color:"rgba(255,255,255,0.04)"},ticks:{color:"#6b7280",font:{size:9},maxTicksLimit:9}},y:yScale}};
+}
+function mk(id,h,cfg){
+  if(charts[id]){charts[id].destroy();charts[id]=null;}
+  var old=document.getElementById(id);if(!old)return;
+  var fresh=document.createElement("canvas");fresh.id=id;
+  var pw=old.parentNode?old.parentNode.clientWidth-28:320,ph=parseInt(h,10);
+  fresh.width=pw;fresh.height=ph;fresh.style.width=pw+"px";fresh.style.height=ph+"px";
+  old.parentNode.replaceChild(fresh,old);charts[id]=new Chart(fresh,cfg);
+}
+function showC(ci,pi){var c=document.getElementById(ci),p=document.getElementById(pi);if(c)c.style.display="block";if(p)p.style.display="none";}
+function showP(ci,pi){var c=document.getElementById(ci),p=document.getElementById(pi);if(c)c.style.display="none";if(p)p.style.display="block";}
+
+function renderGraf(){
+  var pr=D.filter(function(d){return d.peso!=null;}),kr=D.filter(function(d){return d.km!=null;});
+  var br=D.filter(function(d){return d.bike!=null&&d.bike>0;}),bfr=D.filter(function(d){return d.bf!=null&&d.peso!=null;});
+  var imcr=D.filter(function(d){return d.imc!=null;});
+  mk("c-peso","195px",{type:"line",data:{labels:pr.map(function(d){return d.date;}),datasets:[{label:"Peso",data:pr.map(function(d){return d.peso;}),borderColor:"#6ee7b7",backgroundColor:"rgba(110,231,183,0.08)",borderWidth:2.5,pointRadius:3,pointBackgroundColor:"#6ee7b7",tension:0.35,fill:true}]},options:baseOpts(80,102,false,2)});
+  if(bfr.length>0){showC("c-bf","ph-bf");mk("c-bf","185px",{type:"line",data:{labels:bfr.map(function(d){return d.date;}),datasets:[{label:"BF%",data:bfr.map(function(d){return d.bf;}),borderColor:"#fb923c",backgroundColor:"rgba(251,146,60,0.1)",borderWidth:2.5,pointRadius:4,pointBackgroundColor:bfr.map(function(d){return bfCat(d.bf).color;}),tension:0.35,fill:true}]},options:baseOpts()});showC("c-comp","ph-comp");mk("c-comp","185px",{type:"bar",data:{labels:bfr.map(function(d){return d.date;}),datasets:[{label:"Grasa",data:bfr.map(function(d){return Math.round(d.peso*d.bf/100*10)/10;}),backgroundColor:"rgba(251,146,60,0.75)",borderRadius:3,stack:"s"},{label:"Magra",data:bfr.map(function(d){return Math.round((d.peso-d.peso*d.bf/100)*10)/10;}),backgroundColor:"rgba(45,212,191,0.65)",borderRadius:3,stack:"s"}]},options:baseOpts(undefined,undefined,true)});}
+  else{showP("c-bf","ph-bf");showP("c-comp","ph-comp");}
+  mk("c-km","170px",{type:"bar",data:{labels:kr.map(function(d){return d.date;}),datasets:[{label:"Km",data:kr.map(function(d){return d.km||0;}),backgroundColor:kr.map(function(d){return d.km>=7?"rgba(45,212,191,.85)":d.km>=4?"rgba(147,197,253,.85)":d.km>0?"rgba(129,140,248,.85)":"rgba(55,65,81,.7)";}),borderRadius:4}]},options:baseOpts()});
+  if(br.length>0){showC("c-bike","ph-bike");mk("c-bike","155px",{type:"bar",data:{labels:br.map(function(d){return d.date;}),datasets:[{label:"Km bici",data:br.map(function(d){return d.bike||0;}),backgroundColor:"rgba(167,139,250,0.8)",borderRadius:4}]},options:baseOpts()});}
+  else{showP("c-bike","ph-bike");}
+  if(imcr.length>0){showC("c-imc","ph-imc");mk("c-imc","165px",{type:"line",data:{labels:imcr.map(function(d){return d.date;}),datasets:[{label:"IMC",data:imcr.map(function(d){return d.imc;}),borderColor:"#2dd4bf",backgroundColor:"rgba(45,212,191,0.08)",borderWidth:2.5,pointRadius:4,pointBackgroundColor:imcr.map(function(d){return imcCat(d.imc).color;}),tension:0.35,fill:true}]},options:baseOpts(20,36)});}
+  else{showP("c-imc","ph-imc");}
+}
+
+function renderEvents(){
+  var s=stats(),pr=D.filter(function(d){return d.peso!=null;});
+  var ptC=pr.map(function(d){return d.iny?"#f472b6":d.vuelo?"#93c5fd":d.peso===s.pm?"#fcd34d":"#6ee7b7";});
+  var ptR=pr.map(function(d){return(d.iny||d.vuelo||d.peso===s.pm)?7:3;});
+  var ep={id:"ep",afterDatasetsDraw:function(chart){var ctx=chart.ctx,meta=chart.getDatasetMeta(0);ctx.save();ctx.font="13px serif";ctx.textAlign="center";pr.forEach(function(d,i){var icon=d.iny?"💉":d.vuelo?"✈️":d.peso===s.pm?"⭐":null;if(!icon)return;var pt=meta.data[i];if(!pt)return;ctx.fillText(icon,pt.x,pt.y-14);});ctx.restore();}};
+  mk("c-ev","230px",{type:"line",data:{labels:pr.map(function(d){return d.date;}),datasets:[{label:"Peso",data:pr.map(function(d){return d.peso;}),borderColor:"#6ee7b7",backgroundColor:"rgba(110,231,183,0.06)",borderWidth:2,pointRadius:ptR,pointBackgroundColor:ptC,tension:0.35,fill:true}]},options:baseOpts(80,102,false,2),plugins:[ep]});
+  var el=document.getElementById("ev-list");el.innerHTML="";
+  D.filter(function(d){return d.iny||d.vuelo||(d.peso!=null&&d.peso===s.pm);}).forEach(function(d){
+    var ic=d.iny?"💉":d.vuelo?"✈️":"⭐",col=d.iny?"var(--pink)":d.vuelo?"var(--blue)":"var(--amber)",lb=d.iny?d.nota:d.vuelo?d.nota:"Mínimo histórico";
+    var div=document.createElement("div");div.className="er";
+    div.innerHTML='<span style="font-size:18px">'+ic+'</span><span style="font-size:12px;color:var(--sub);flex-shrink:0">'+d.date+'</span><span style="font-size:13px;color:'+col+';font-weight:600;flex:1">'+(lb||ic)+'</span>'+(d.peso!=null?'<span style="font-size:12px;color:var(--muted)">'+d.peso+' kg</span>':"");
+    el.appendChild(div);
+  });
+}
+
+// ── SALUD (Apple Health + Wyze) ────────────────────────────────────────────────
+function renderSalud(){
+  var hs=HEALTH.filter(function(d){return d.steps!=null;});
+  var hr=HEALTH.filter(function(d){return d.rhr!=null;});
+  var hv=HEALTH.filter(function(d){return d.visceral!=null;});
+  var hm=HEALTH.filter(function(d){return d.muscleM!=null;});
+  var hsl=HEALTH.filter(function(d){return d.sleepH!=null;});
+
+  // Stat cards
+  if(hs.length>0){
+    var avgSteps=Math.round(hs.reduce(function(s,d){return s+d.steps;},0)/hs.length);
+    set("h-stepsavg",avgSteps.toLocaleString());
+    set("h-stepsdays",hs.length+" días registrados");
+  }
+  if(hr.length>0){
+    var avgRhr=Math.round(hr.reduce(function(s,d){return s+d.rhr;},0)/hr.length);
+    set("h-rhravg",avgRhr);
+  }
+  // Latest body comp from scale
+  if(hv.length>0){
+    var last=hv[hv.length-1];
+    set("h-visceral",last.visceral);
+    set("h-muscle",last.muscleM+"%");
+    set("h-water",last.bodyWater+"%");
+    set("h-bone",last.boneM+" kg");
+    set("h-bmr",last.bmr+" kcal");
+    set("h-metage",last.metAge+" años");
+  }
+
+  // Steps chart
+  if(hs.length>0){
+    mk("c-steps","190px",{type:"bar",data:{labels:hs.map(function(d){return d.date;}),datasets:[{label:"Pasos",data:hs.map(function(d){return d.steps;}),backgroundColor:hs.map(function(d){return d.steps>=10000?"rgba(45,212,191,.85)":d.steps>=6000?"rgba(147,197,253,.85)":"rgba(129,140,248,.7)";}),borderRadius:3}]},options:baseOpts()});
+  }
+  // RHR chart
+  if(hr.length>0){
+    mk("c-rhr","170px",{type:"line",data:{labels:hr.map(function(d){return d.date;}),datasets:[{label:"FC reposo",data:hr.map(function(d){return d.rhr;}),borderColor:"#f472b6",backgroundColor:"rgba(244,114,182,0.08)",borderWidth:2,pointRadius:2,tension:0.3,fill:true}]},options:baseOpts()});
+  }
+  // Visceral fat chart
+  if(hv.length>0){
+    mk("c-visc","160px",{type:"line",data:{labels:hv.map(function(d){return d.date;}),datasets:[{label:"Grasa visceral",data:hv.map(function(d){return d.visceral;}),borderColor:"#fb923c",backgroundColor:"rgba(251,146,60,0.1)",borderWidth:2.5,pointRadius:3,tension:0.3,fill:true}]},options:baseOpts(0,12,false,2)});
+  }
+  // Muscle mass chart
+  if(hm.length>0){
+    mk("c-muscle","160px",{type:"line",data:{labels:hm.map(function(d){return d.date;}),datasets:[{label:"Masa muscular %",data:hm.map(function(d){return d.muscleM;}),borderColor:"#2dd4bf",backgroundColor:"rgba(45,212,191,0.1)",borderWidth:2.5,pointRadius:3,tension:0.3,fill:true}]},options:baseOpts()});
+  }
+  // Sleep chart
+  if(hsl.length>0){
+    showC("c-sleep","ph-sleep");
+    mk("c-sleep","150px",{type:"bar",data:{labels:hsl.map(function(d){return d.date;}),datasets:[{label:"Horas",data:hsl.map(function(d){return d.sleepH;}),backgroundColor:"rgba(167,139,250,0.8)",borderRadius:4}]},options:baseOpts(0,10)});
+  } else { showP("c-sleep","ph-sleep"); }
+}
+
+function renderTabla(){
+  var tb=document.getElementById("t-body");tb.innerHTML="";
+  D.slice().reverse().forEach(function(r){
+    var kc=r.km>0?"var(--blue)":r.km===0?"#ef4444":"#374151",bkc=(r.bike||0)>0?"var(--purple)":"#374151";
+    var ic=[r.vuelo?"✈️":"",r.iny?"💉":"",r.gym?"🏋️":""].filter(Boolean).join("");
+    var imcC=r.imc?imcCat(r.imc).color:"#374151",bfC=r.bf?bfCat(r.bf).color:"#374151";
+    var tr=document.createElement("tr");
+    tr.innerHTML='<td style="color:var(--sub);font-weight:600">'+r.date+'</td>'
+      +'<td style="color:var(--sub);font-size:10px">'+(r.city||"")+'</td>'
+      +'<td style="color:'+(r.peso?"var(--text)":"#374151")+';font-weight:'+(r.peso?700:400)+'">'+(r.peso!=null?r.peso:"—")+'</td>'
+      +'<td style="color:'+bfC+';font-weight:600">'+(r.bf!=null?r.bf+"%":"—")+'</td>'
+      +'<td style="color:'+imcC+'">'+(r.imc!=null?r.imc:"—")+'</td>'
+      +'<td style="color:'+kc+'">'+(r.km!=null?(r.km>0?r.km:"0"):"—")+'</td>'
+      +'<td style="color:'+bkc+'">'+(( r.bike||0)>0?r.bike:"—")+'</td>'
+      +'<td style="font-size:12px">'+ic+'</td>'
+      +'<td style="color:#4b5563;font-size:10px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.nota||"")+'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+function exportXLSX(){
+  try{
+    var rows=[["Fecha","Ciudad","Peso (kg)","Body Fat %","IMC","Km caminados","Km bici","Vuelo","Inyeccion","Gym","Nota"]];
+    D.slice().reverse().forEach(function(r){rows.push([r.date,r.city||"",r.peso!=null?r.peso:"",r.bf!=null?r.bf:"",r.imc!=null?r.imc:"",r.km!=null?r.km:"",(r.bike||0)>0?r.bike:"",r.vuelo?"Si":"",r.iny?"Si":"",r.gym?"Si":"",(r.nota||"")]);});
+    var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"]=[{wch:10},{wch:14},{wch:10},{wch:12},{wch:8},{wch:14},{wch:10},{wch:8},{wch:12},{wch:8},{wch:30}];
+    XLSX.utils.book_append_sheet(wb,ws,"Mi Progreso");
+    XLSX.writeFile(wb,"mi-progreso-"+new Date().toISOString().slice(0,10)+".xlsx");
+    toast("✅ Excel descargado");
+  }catch(e){toast("⚠️ Error: "+e.message);console.error(e);}
+}
+
+function exportCSV(){
+  try{
+    var rows=["Fecha,Ciudad,Peso,BF%,IMC,Km caminados,Km bici,Vuelo,Inyeccion,Gym,Nota"];
+    D.slice().reverse().forEach(function(r){rows.push([r.date,'"'+(r.city||"").replace(/"/g,"'")+'"',r.peso!=null?r.peso:"",r.bf!=null?r.bf:"",r.imc!=null?r.imc:"",r.km!=null?r.km:"",(r.bike||0)>0?r.bike:"",r.vuelo?"Si":"",r.iny?"Si":"",r.gym?"Si":"",'"'+(r.nota||"").replace(/"/g,"'")+'"'].join(","));});
+    var blob=new Blob(["\uFEFF"+rows.join("\n")],{type:"text/csv;charset=utf-8;"});
+    var url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="mi-progreso-"+new Date().toISOString().slice(0,10)+".csv";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    toast("✅ CSV descargado");
+  }catch(e){toast("⚠️ Error: "+e.message);}
+}
+
+function genPDF(){
+  toast("⏳ Generando PDF...");
+  setTimeout(function(){
+    try{
+      var JsPDF=window.jspdf.jsPDF,s=stats(),doc=new JsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      var W=210,M=16,y=0;
+      doc.setFillColor(6,78,59);doc.rect(0,0,W,36,"F");doc.setTextColor(110,231,183);doc.setFontSize(20);doc.setFont("helvetica","bold");doc.text("Mi Progreso de Salud",M,17);
+      doc.setFontSize(9);doc.setTextColor(100,200,150);doc.setFont("helvetica","normal");
+      doc.text("Generado el "+new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"long",year:"numeric"})+"  ·  "+(D[0]?D[0].date:"")+" - "+(D[D.length-1]?D[D.length-1].date:""),M,27);
+      y=46;
+      var bxs=[{l:"Bajada peso",v:s.bajada+" kg",sb:s.pi+" -> "+s.pa+" kg"},{l:"Minimo",v:s.pm+" kg",sb:s.pmDate},{l:"BF inicial",v:s.bfI!=null?s.bfI+"%":"—",sb:"body fat"},{l:"BF actual",v:s.bfA!=null?s.bfA+"%":"—",sb:"body fat"},{l:"Km caminados",v:s.kmTotal+" km",sb:s.diasKm+" dias"},{l:"Km bici",v:s.bikeTotal+" km",sb:s.diasBike+" dias"},{l:"Inyecciones",v:""+s.inyecciones,sb:"dosis"},{l:"Vuelos",v:""+s.vuelos,sb:"vuelos"}];
+      var bw=(W-M*2-9)/2;
+      bxs.forEach(function(b,i){var x=M+(i%2)*(bw+9),by=y+Math.floor(i/2)*26;doc.setFillColor(15,23,42);doc.roundedRect(x,by,bw,22,3,3,"F");doc.setFontSize(8);doc.setTextColor(107,114,128);doc.setFont("helvetica","normal");doc.text(b.l.toUpperCase(),x+4,by+7);doc.setFontSize(13);doc.setTextColor(110,231,183);doc.setFont("helvetica","bold");doc.text(b.v,x+4,by+16);doc.setFontSize(7);doc.setTextColor(100,116,139);doc.setFont("helvetica","normal");doc.text(b.sb,x+bw-4,by+16,{align:"right"});});
+      y+=4*26+6;doc.setFillColor(6,78,59);doc.rect(M,y,W-M*2,8,"F");doc.setFontSize(9);doc.setTextColor(110,231,183);doc.setFont("helvetica","bold");doc.text("REGISTRO COMPLETO",M+4,y+5.5);y+=12;
+      var cols=[{h:"Fecha",w:20},{h:"Ciudad",w:24},{h:"Peso",w:16},{h:"BF%",w:13},{h:"IMC",w:13},{h:"Km cam",w:16},{h:"Km bici",w:16},{h:"Nota",w:W-M*2-20-24-16-13-13-16-16}];
+      var x=M;doc.setFillColor(22,33,62);doc.rect(M,y,W-M*2,7,"F");doc.setFontSize(7.5);doc.setTextColor(110,231,183);doc.setFont("helvetica","bold");cols.forEach(function(c){doc.text(c.h,x+2,y+5);x+=c.w;});y+=8;
+      D.forEach(function(r,i){
+        if(y>272){doc.addPage();y=16;x=M;doc.setFillColor(22,33,62);doc.rect(M,y,W-M*2,7,"F");doc.setFontSize(7.5);doc.setTextColor(110,231,183);doc.setFont("helvetica","bold");cols.forEach(function(c){doc.text(c.h,x+2,y+5);x+=c.w;});y+=8;}
+        if(i%2===0){doc.setFillColor(15,23,42);doc.rect(M,y,W-M*2,6.5,"F");}
+        x=M;doc.setFontSize(7.5);doc.setFont("helvetica","normal");
+        doc.setTextColor(148,163,184);doc.text(r.date,x+2,y+4.5);x+=cols[0].w;
+        doc.setTextColor(148,163,184);doc.text((r.city||"").substring(0,12),x+2,y+4.5);x+=cols[1].w;
+        doc.setTextColor(r.peso?241:55,r.peso?245:65,r.peso?249:81);doc.text(r.peso!=null?r.peso+"kg":"—",x+2,y+4.5);x+=cols[2].w;
+        doc.setTextColor(251,146,60);doc.text(r.bf!=null?r.bf+"%":"—",x+2,y+4.5);x+=cols[3].w;
+        doc.setTextColor(45,212,191);doc.text(r.imc!=null?""+r.imc:"—",x+2,y+4.5);x+=cols[4].w;
+        doc.setTextColor(r.km>0?147:55,r.km>0?197:65,r.km>0?253:81);doc.text(r.km!=null?(r.km>0?r.km+"km":"0"):"—",x+2,y+4.5);x+=cols[5].w;
+        doc.setTextColor(167,139,250);doc.text((r.bike||0)>0?r.bike+"km":"—",x+2,y+4.5);x+=cols[6].w;
+        doc.setTextColor(107,114,128);doc.text((r.nota||"").substring(0,28),x+2,y+4.5);y+=6.5;
+      });
+      var pg=doc.internal.getNumberOfPages();for(var p=1;p<=pg;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(55,65,81);doc.text("Pag. "+p+"/"+pg,W-M,290,{align:"right"});}
+      doc.save("mi-progreso-salud.pdf");toast("✅ PDF descargado");
+    }catch(e){toast("⚠️ Error PDF");console.error(e);}
+  },100);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(function(){
+  if(window.Chart){Chart.defaults.animation=false;Chart.defaults.animations=false;Chart.defaults.transitions={};}
+  var n=new Date();
+  document.getElementById("f-date").value=String(n.getDate()).padStart(2,"0")+"/"+String(n.getMonth()+1).padStart(2,"0");
+  var alt=getAlt();
+  if(!alt){
+    var altDiv=document.createElement("div");altDiv.className="fld";
+    altDiv.innerHTML='<span class="lbl">TU ALTURA (cm) — solo la primera vez</span><input class="inp" id="f-alt" type="number" step="1" placeholder="175"/><p class="city-hint">Se guarda para calcular IMC automáticamente</p>';
+    document.getElementById("f-bf").closest(".fld").parentNode.insertBefore(altDiv,document.getElementById("f-bf").closest(".fld"));
+    document.getElementById("f-alt").addEventListener("change",function(){var v=+this.value;if(v>100&&v<250){setAlt(v);altDiv.style.display="none";}});
+  }
+  document.getElementById("save-bar").style.display="block";
+  renderLastPeso();
+  renderDash();
+})();
+</script>
+</script>
+</body>
+</html>
